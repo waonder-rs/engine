@@ -1,3 +1,4 @@
+use std::fmt;
 use super::Tensor2d;
 
 #[repr(packed)]
@@ -33,5 +34,11 @@ impl<T: Default> Default for Vector4D<T> {
 			z: T::default(),
 			w: T::default()
 		}
+	}
+}
+
+impl<T: Copy + fmt::Display> fmt::Display for Vector4D<T> {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "({}, {}, {}, {})", self.x, self.y, self.z, self.w)
 	}
 }

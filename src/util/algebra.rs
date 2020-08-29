@@ -88,6 +88,28 @@ impl MonoidAdd for f64 {
 	const ZERO: f64 = 0.0;
 }
 
+pub trait Sqrt: Sized {
+	type Output;
+
+	fn sqrt(self) -> Self::Output;
+}
+
+impl Sqrt for f32 {
+	type Output = f32;
+
+	fn sqrt(self) -> f32 {
+		f32::sqrt(self)
+	}
+}
+
+impl Sqrt for f64 {
+	type Output = f64;
+
+	fn sqrt(self) -> f64 {
+		f64::sqrt(self)
+	}
+}
+
 // 2d norm 2.
 pub trait Norm: Sized {
 	type Output;

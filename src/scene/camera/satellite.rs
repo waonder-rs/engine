@@ -5,7 +5,10 @@ use std::sync::{
 use std::collections::HashSet;
 use vulkano::command_buffer::AutoCommandBufferBuilder;
 use crate::{
-	util::Matrix4x4,
+	util::{
+		Matrix4x4,
+		Vector3D
+	},
 	RenderTarget,
 	Scene,
 	Node,
@@ -19,16 +22,28 @@ pub struct Satellite {
 	parent: Option<WeakNodeRef>,
 	children: HashSet<NodeRef>,
 
+	center: Vector3D<f32>,
+	distance: f32,
+	position: (f32, f32), // surface coordinates (polar, azimuthal).
+
 	/// Perspective projection
 	projection: Matrix4x4<f32>
 }
 
 impl Satellite {
-	pub fn new(projection: Matrix4x4<f32>) -> Satellite {
+	pub fn new(projection: Matrix4x4<f32>, center: Vector3D<f32>, distance: f32, position: (f32, f32)) -> Satellite {
+		let world_position = Vector3D::new(distance, 0.0, 0.0);
+		let mut transformation = Matrix4x4::translation(center-world_position);
+		transformation *= Matrix4x4::looking_at(-world_position, Vector3D::new(0.0, 0.0, 1.0)).inverted().unwrap();
+
 		Satellite {
-			transformation: Matrix4x4::identity(),
+			transformation,
 			parent: None,
 			children: HashSet::new(),
+
+			center,
+			distance,
+			position,
 
 			projection
 		}

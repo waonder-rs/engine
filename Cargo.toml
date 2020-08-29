@@ -13,6 +13,6 @@ parking_lot = "*"
 vulkano-win = "*"
 winit = "*"
 rand = "*"
-bottle = { path = "./../../../design/bottle" }
+bottle = { path = "../../utils/design/bottle" }
 async-std = { version = "*", features = ["attributes"] }
 crossbeam-channel = "*"

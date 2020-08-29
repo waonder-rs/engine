@@ -129,6 +129,7 @@ impl Node for Object {
 
 	fn draw(&self, _scene: &Scene, target: &RenderTarget, builder: &mut AutoCommandBufferBuilder, projection: &Matrix4x4<f32>) {
 		let projection = projection * self.transformation();
+		// println!("projection:\n{}", projection);
 		builder.draw_indexed(self.pipeline(target).clone(), target.dynamic_state(), vec![self.geometry.vertex_buffer().clone()], self.geometry.index_buffer().clone(), (), projection).unwrap();
 	}
 }

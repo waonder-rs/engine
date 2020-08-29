@@ -1,5 +1,6 @@
-use std::ops::{Div, Mul, Add, Sub};
-use super::Norm;
+use std::fmt;
+use std::ops::{Div, Mul, Add, Sub, Neg};
+use super::Sqrt;
 
 #[repr(packed)]
 pub struct Vector3D<T: Copy> {
@@ -31,7 +32,7 @@ impl<T: Copy> Vector3D<T> {
 		self.z
 	}
 
-	pub fn normal(&self) -> Vector3D<T> where T: Copy + Norm<Output = T> + Div<Output = T> {
+	pub fn normal(self) -> Vector3D<T> where T: Add<Output=T> + Sqrt<Output = T> + Mul<Output=T> + Div<Output = T> {
 		let l = self.len();
 		Vector3D {
 			x: self.x/l,
@@ -40,8 +41,23 @@ impl<T: Copy> Vector3D<T> {
 		}
 	}
 
-	pub fn len<D>(&self) -> D where T: Norm<Output = D> {
-		T::norm(&[self.x, self.y, self.z])
+	pub fn normalize(&mut self) where T: Add<Output=T> + Sqrt<Output = T> + Mul<Output=T> + Div<Output = T> {
+		let l = self.len();
+		self.x = self.x / l;
+		self.y = self.y / l;
+		self.z = self.z / l;
+	}
+
+	pub fn cross_product<D: Copy>(self, other: Vector3D<T>) -> Vector3D<D> where T: Mul, T::Output: Sub<Output=D> {
+		Vector3D {
+			x: self.y * other.z - self.z * other.y,
+			y: self.z * other.x - self.x * other.z,
+			z: self.x * other.y - self.y * other.x
+		}
+	}
+
+	pub fn len(&self) -> T where T: Add<Output=T> + Mul<Output=T> + Sqrt<Output=T> {
+		(self.x * self.x + self.y * self.y + self.z * self.y).sqrt()
 	}
 
 	pub fn scalar(self, other: Self) -> T where T: Mul<Output = T> + Add<Output = T> {
@@ -95,6 +111,30 @@ impl<T: Copy + Add> Add for Vector3D<T> where T::Output: Copy {
 	}
 }
 
+impl<T: Copy + Sub> Sub for Vector3D<T> where T::Output: Copy {
+	type Output = Vector3D<T::Output>;
+
+	fn sub(self, other: Self) -> Vector3D<T::Output> {
+		Vector3D {
+			x: self.x - other.x,
+			y: self.y - other.y,
+			z: self.z - other.z
+		}
+	}
+}
+
+impl<T: Copy + Neg> Neg for Vector3D<T> where T::Output: Copy {
+	type Output = Vector3D<T::Output>;
+
+	fn neg(self) -> Vector3D<T::Output> {
+		Vector3D {
+			x: -self.x,
+			y: -self.y,
+			z: -self.z
+		}
+	}
+}
+
 impl<F: Sub, T: Copy + Mul<Output = F>> Mul for Vector3D<T> where F::Output: Copy {
 	type Output = Vector3D<F::Output>;
 
@@ -128,5 +168,11 @@ impl<T: Copy + Div> Div<T> for Vector3D<T> where T::Output: Copy {
 			y: self.y / f,
 			z: self.z / f
 		}
+	}
+}
+
+impl<T: Copy + fmt::Display> fmt::Display for Vector3D<T> {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "({}, {}, {})", self.x, self.y, self.z)
 	}
 }

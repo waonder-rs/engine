@@ -3,13 +3,17 @@ use std::ops::{
 	Add,
 	Sub,
 	Mul,
+	MulAssign,
 	Div,
 	Index
 };
 use super::{
+	Vector3D,
+	Vector4D,
 	Tensor2d,
 	MonoidMul,
 	MonoidAdd,
+	Sqrt,
 	Trigonometric
 };
 
@@ -88,7 +92,22 @@ impl<T> Matrix4x4<T> {
 		Matrix4x4::perspective(T::ZERO-right, right, T::ZERO-top, top, near, far)
 	}
 
-	pub fn translation(pos: super::Vector3D<T>) -> Matrix4x4<T> where T: Copy + MonoidMul + MonoidAdd {
+	pub fn looking_at(mut target: Vector3D<T>, up: Vector3D<T>) -> Matrix4x4<T> where T: Copy + MonoidAdd + Sub<Output=T> + MonoidMul + Div<Output=T> + Sqrt<Output=T> {
+		target.normalize();
+		let mut forward = Vector3D::new(T::ZERO - target.x, T::ZERO - target.y, T::ZERO - target.z);
+
+		let side = Vector3D::cross_product(forward, up);
+		let up = Vector3D::cross_product(side, forward);
+
+		Matrix4x4(transposed![
+			side.x, side.y, side.z, T::ZERO,
+			up.x, up.y, up.z, T::ZERO,
+			target.x, target.y, target.z, T::ZERO,
+			T::ZERO, T::ZERO, T::ZERO, T::ONE
+		])
+	}
+
+	pub fn translation(pos: Vector3D<T>) -> Matrix4x4<T> where T: Copy + MonoidMul + MonoidAdd {
 		Matrix4x4(transposed![
 			T::ONE, T::ZERO, T::ZERO, pos.x,
 			T::ZERO, T::ONE, T::ZERO, pos.y,
@@ -97,7 +116,7 @@ impl<T> Matrix4x4<T> {
 		])
 	}
 
-	pub fn translate(&mut self, pos: super::Vector3D<T>) -> &mut Self where T: Copy + Add<Output=T> + Mul<Output=T> {
+	pub fn translate(&mut self, pos: Vector3D<T>) -> &mut Self where T: Copy + Add<Output=T> + Mul<Output=T> {
 		let m = self.0[3];
 		let n = self.0[7];
 		let o = self.0[11];
@@ -167,7 +186,7 @@ impl<T> Matrix4x4<T> {
 		self[(3, 0)] * self.det3(0, 1, 2, 1, 2, 3)
 	}
 
-	pub fn inverted(&mut self) -> Option<Self> where T: Copy + MonoidAdd + MonoidMul + Sub<Output=T> + Div<Output=T> + PartialEq {
+	pub fn inverted(&self) -> Option<Self> where T: Copy + MonoidAdd + MonoidMul + Sub<Output=T> + Div<Output=T> + PartialEq {
 		let det = self.determinant();
 
 		// check if the matrix is invertible.
@@ -289,6 +308,13 @@ impl<T: Copy + Add<Output = T> + Mul<Output = T>> Mul for Matrix4x4<T> {
 	}
 }
 
+impl<T: Copy + Add<Output = T> + Mul<Output = T>> MulAssign for Matrix4x4<T> {
+	fn mul_assign(&mut self, rhs: Self) {
+		let m = *self * rhs;
+		*self = m
+	}
+}
+
 impl<'a, T: Copy + Add<Output = T> + Mul<Output = T>> Mul<&'a Self> for Matrix4x4<T> {
 	type Output = Self;
 
@@ -313,6 +339,35 @@ impl<'a, 'b, T: Copy + Add<Output = T> + Mul<Output = T>> Mul<&'b Matrix4x4<T>> 
 	#[inline]
 	fn mul(self, rhs: &'b Matrix4x4<T>) -> Matrix4x4<T> {
 		*self * *rhs
+	}
+}
+
+impl<T: Copy + Add<Output = T> + Mul<Output = T>> Mul<Vector4D<T>> for Matrix4x4<T> {
+	type Output = Vector4D<T>;
+
+	#[inline]
+	fn mul(self, rhs: Vector4D<T>) -> Vector4D<T> {
+		Vector4D::new(
+			self[(0, 0)] * rhs.x + self[(1, 0)] * rhs.y + self[(2, 0)] * rhs.z + self[(3, 0)] * rhs.w,
+			self[(0, 1)] * rhs.x + self[(1, 1)] * rhs.y + self[(2, 1)] * rhs.z + self[(3, 1)] * rhs.w,
+			self[(0, 2)] * rhs.x + self[(1, 2)] * rhs.y + self[(2, 2)] * rhs.z + self[(3, 2)] * rhs.w,
+			self[(0, 3)] * rhs.x + self[(1, 3)] * rhs.y + self[(2, 3)] * rhs.z + self[(3, 3)] * rhs.w
+		)
+	}
+}
+
+impl<T: Copy + Add<Output = T> + Mul<Output = T> + Div<Output=T>> Mul<Vector3D<T>> for Matrix4x4<T> {
+	type Output = Vector3D<T>;
+
+	#[inline]
+	fn mul(self, rhs: Vector3D<T>) -> Vector3D<T> {
+		let w = self[(0, 3)] * rhs.x + self[(1, 3)] * rhs.y + self[(2, 3)] * rhs.z + self[(3, 3)];
+
+		Vector3D::new(
+			(self[(0, 0)] * rhs.x + self[(1, 0)] * rhs.y + self[(2, 0)] * rhs.z + self[(3, 0)]) / w,
+			(self[(0, 1)] * rhs.x + self[(1, 1)] * rhs.y + self[(2, 1)] * rhs.z + self[(3, 1)]) / w,
+			(self[(0, 2)] * rhs.x + self[(1, 2)] * rhs.y + self[(2, 2)] * rhs.z + self[(3, 2)]) / w
+		)
 	}
 }
 
