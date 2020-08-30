@@ -17,6 +17,14 @@ impl<S> Conductor<S> {
 		self.threads.push(thread)
 	}
 
+	pub fn get_mut(&mut self) -> &mut S {
+		&mut self.state
+	}
+
+	pub fn get(&self) -> &S {
+		&self.state
+	}
+
 	/// Cycle.
 	///
 	/// Wake every threads for a new cycle,

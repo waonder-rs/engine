@@ -141,6 +141,22 @@ impl<T> Matrix4x4<T> {
 		self
 	}
 
+	/// Rotation aroung the given axis.
+	///
+	/// The angle is given in radians.
+	pub fn rotation(angle: T, axis: Vector3D<T>) -> Matrix4x4<T> where T: Copy + Trigonometric<Output=T> + MonoidAdd + Sub<Output=T> + MonoidMul {
+		let c = angle.cos();
+		let oc = T::ONE - c;
+		let s = angle.sin();
+
+		Matrix4x4(transposed![
+			axis.x*axis.x*oc + c       , axis.x*axis.y*oc - axis.z*s, axis.x*axis.z*oc + axis.y*s, T::ZERO,
+			axis.y*axis.x*oc + axis.z*s, axis.y*axis.y*oc + c       , axis.y*axis.z*oc - axis.x*s, T::ZERO,
+			axis.z*axis.x*oc - axis.y*s, axis.z*axis.y*oc + axis.x*s, axis.z*axis.z*oc + c       , T::ZERO,
+			T::ZERO                    , T::ZERO                    , T::ZERO                    , T::ONE
+		])
+	}
+
 	pub fn transposed(&self) -> Self where T: Copy {
 		Matrix4x4([
 			self.0[0], self.0[4], self.0[8], self.0[12],

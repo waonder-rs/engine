@@ -66,7 +66,12 @@ use vulkano_win::VkSurfaceBuild;
 
 use winit::{
 	event_loop::EventLoop,
-	event::Event,
+	event::{
+		Event,
+		WindowEvent,
+		MouseButton,
+		ElementState
+	},
 	window::{
 		Window as WinitWindow,
 		WindowBuilder
@@ -433,7 +438,7 @@ async fn main() {
 		0.8, // ~ 45°
 		800.0/600.0,
 		0.1, 10.0
-	), Vector3D::new(1.0, 1.0, 1.0), 1.0, (0.0, 0.0)));
+	), Vector3D::new(0.0, 0.0, 0.0), 1.0, (0.0, 0.0)));
 	// let camera = scene.new_node(camera::Satellite::new(Matrix4x4::orthographic(
 	// 	-1.0, 1.0,
 	// 	-1.0, 1.0,
@@ -442,7 +447,7 @@ async fn main() {
 	// let camera = scene.new_node(camera::Satellite::new(Matrix4x4::identity()));
 	// scene.get_mut(&camera).transformation_mut().translate(Vector3D::new(0.0, 0.0, 2.0));
 
-	let window = Window::new(&event_loop, &physical_device, camera);
+	let window = Window::new(&event_loop, &physical_device, camera.clone());
 
 	let queue = bottle::EventQueue::new();
 	let (loader, loader_queue) = Loader::new(&window.queues.transfert);
@@ -459,8 +464,6 @@ async fn main() {
 	let material = Arc::new(material::Depth::new(&window.target.device));
 	let object = scene.new_root(Object::new(None, geometry, projection, material));
 
-	scene.get_mut(&object).transformation_mut().translate(Vector3D::new(1.0, 1.0, 1.0));
-
 	// Rendering thread.
 	let mut render_thread = sync::Thread::new();
 	render_thread.add(window);
@@ -471,11 +474,39 @@ async fn main() {
 	conductor.add(render_thread);
 
 	// Loop.
+	let mut mouse_pressed = false;
+	let mut mouse_pos = winit::dpi::PhysicalPosition::new(0.0f64, 0.0);
 	event_loop.run(move |event, _, _| {
 		match event {
 			Event::RedrawRequested(id) => {
 				// window.send(Render(object.clone()));
 				conductor.inverse_cycle();
+			},
+			Event::WindowEvent { event, .. } => {
+				match event {
+					WindowEvent::MouseInput { button: MouseButton::Left, state: ElementState::Pressed, .. } => {
+						mouse_pressed = true
+					},
+					WindowEvent::MouseInput { button: MouseButton::Left, state: ElementState::Released, .. } => {
+						mouse_pressed = false
+					},
+					WindowEvent::CursorMoved { position, .. } => {
+						if mouse_pressed {
+							let delta_polar = (position.x - mouse_pos.x) * 0.01;
+							let delta_azimuthal = (position.y - mouse_pos.y) * 0.01;
+
+							let scene = conductor.get_mut();
+							scene.get_mut(&camera).move_by(delta_polar as f32, delta_azimuthal as f32);
+						}
+
+						mouse_pos = position;
+
+						if mouse_pressed {
+							conductor.inverse_cycle();
+						}
+					},
+					_ => ()
+				}
 			},
 			_ => ()
 		}
