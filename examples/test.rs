@@ -36,7 +36,8 @@ use vulkano::{
 	image::{
 		ImageUsage,
 		ImageLayout,
-		SwapchainImage
+		SwapchainImage,
+		AttachmentImage
 	},
 	framebuffer::{
 		RenderPass,
@@ -131,15 +132,16 @@ fn choose_format(surface_capabilities: &Capabilities) -> Option<(Format, ColorSp
 }
 
 struct CustomRenderPass {
-	attachment: AttachmentDescription,
+	color_attachment: AttachmentDescription,
+	depth_attachment: AttachmentDescription,
 	draw_pass: PassDescription
 }
 
 impl CustomRenderPass {
-	fn new(format: Format) -> CustomRenderPass {
+	fn new(color_format: Format, depth_format: Format) -> CustomRenderPass {
 		CustomRenderPass {
-			attachment: AttachmentDescription {
-				format,
+			color_attachment: AttachmentDescription {
+				format: color_format,
 				samples: 1,
 				load: LoadOp::Clear,
 				store: StoreOp::Store,
@@ -148,9 +150,19 @@ impl CustomRenderPass {
 				initial_layout: ImageLayout::Undefined,
 				final_layout: ImageLayout::PresentSrc
 			},
+			depth_attachment: AttachmentDescription {
+				format: depth_format,
+				samples: 1,
+				load: LoadOp::Clear,
+				store: StoreOp::DontCare,
+				stencil_load: LoadOp::DontCare,
+				stencil_store: StoreOp::DontCare,
+				initial_layout: ImageLayout::Undefined,
+				final_layout: ImageLayout::DepthStencilAttachmentOptimal
+			},
 			draw_pass: PassDescription {
 				color_attachments: vec![(0, ImageLayout::ColorAttachmentOptimal)],
-				depth_stencil: None,
+				depth_stencil: Some((1, ImageLayout::DepthStencilAttachmentOptimal)),
 				input_attachments: vec![],
 				resolve_attachments: vec![],
 				preserve_attachments: vec![]
@@ -168,14 +180,14 @@ unsafe impl RenderPassDescClearValues<Vec<ClearValue>> for CustomRenderPass {
 
 unsafe impl RenderPassDesc for CustomRenderPass {
 	fn num_attachments(&self) -> usize {
-		1
+		2
 	}
 
 	fn attachment_desc(&self, num: usize) -> Option<AttachmentDescription> {
-		if num == 0 {
-			Some(self.attachment.clone())
-		} else {
-			None
+		match num {
+			0 => Some(self.color_attachment.clone()),
+			1 => Some(self.depth_attachment.clone()),
+			_ => None
 		}
 	}
 
@@ -203,8 +215,9 @@ unsafe impl RenderPassDesc for CustomRenderPass {
 /// A window with a swapchain.
 pub struct Window {
 	surface: Arc<Surface<WinitWindow>>,
-	format: Format,
+	color_format: Format,
 	color_space: ColorSpace,
+	depth_format: Format,
 	queues: Queues,
 	target: WindowRenderTarget,
 	swapchain: Option<WindowSwapchain>,
@@ -221,6 +234,7 @@ pub struct WindowRenderTarget {
 pub struct WindowSwapchain {
 	handle: Arc<Swapchain<WinitWindow>>,
 	images: Vec<Arc<SwapchainImage<WinitWindow>>>,
+	depth_image: Arc<AttachmentImage<Format>>,
 	framebuffers: Vec<Arc<dyn FramebufferAbstract + Send + Sync>>,
 	optimal: bool
 }
@@ -242,8 +256,10 @@ impl Window {
 		let queue = queues.next().unwrap();
 
 		let surface_capabilities = surface.capabilities(device.physical_device()).unwrap();
-		let (format, color_space) = choose_format(&surface_capabilities).expect("No appropriate format found");
-		let render_pass = Arc::new(RenderPass::new(device.clone(), CustomRenderPass::new(format)).unwrap());
+		let (color_format, color_space) = choose_format(&surface_capabilities).expect("No appropriate format found");
+
+		let depth_format = Format::D32Sfloat; // TODO check it is supported.
+		let render_pass = Arc::new(RenderPass::new(device.clone(), CustomRenderPass::new(color_format, depth_format)).unwrap());
 
 		Window {
 			target: WindowRenderTarget {
@@ -252,8 +268,9 @@ impl Window {
 				dynamic_state: DynamicState::none(),
 			},
 			surface,
-			format,
+			color_format,
 			color_space,
+			depth_format,
 			queues: Queues {
 				graphics: queue.clone(),
 				transfert: queue.clone(), // graphics queues support transfert commands.
@@ -275,17 +292,22 @@ impl Window {
 		// Surface-Swapchain capabilities.
 		let surface_capabilities = self.surface.capabilities(self.target.device.physical_device()).unwrap();
 
+		// TODO check if the dimensions are supported by the swapchain.
+		let dimensions = self.surface.window().inner_size().into();
+
+		let depth_image = AttachmentImage::new(self.target.device.clone(), dimensions, self.depth_format).unwrap();
+
 		let (handle, images) = match self.swapchain.take() {
 			Some(old_swapchain) => {
-				old_swapchain.handle.recreate_with_dimensions(self.surface.window().inner_size().into()).unwrap()
+				old_swapchain.handle.recreate_with_dimensions(dimensions).unwrap()
 			},
 			None => {
 				Swapchain::new(
 					self.target.device.clone(),
 					self.surface.clone(),
 					surface_capabilities.min_image_count,
-					self.format,
-					self.surface.window().inner_size().into(), // TODO check if the dimensions are supported by the swapchain.
+					self.color_format,
+					dimensions,
 					1,
 					ImageUsage::color_attachment(),
 					SharingMode::Exclusive, // TODO Image sharing mode
@@ -312,12 +334,13 @@ impl Window {
 		let framebuffers: Vec<_> = images.iter().map(|image| {
 			let fb = Framebuffer::start(self.target.render_pass.clone())
 				.add(image.clone()).unwrap()
+				.add(depth_image.clone()).unwrap()
 				.build().unwrap();
 			Arc::new(fb) as Arc<dyn FramebufferAbstract + Send + Sync>
 		}).collect();
 
 		self.swapchain.replace(WindowSwapchain {
-			handle, images, framebuffers,
+			handle, images, depth_image, framebuffers,
 			optimal: true
 		});
 	}
@@ -355,7 +378,7 @@ impl Window {
 		}
 
 		let mut rng = rand::thread_rng();
-		let clear_values = vec![[0.0, 0.0, 0.0, 1.0].into()];
+		let clear_values = vec![ClearValue::Float([0.0, 0.0, 0.0, 1.0]), ClearValue::Depth(1.0)];
 
 		// Create command buffer
 		// TODO can we avoid creating a comand buffer each render?

@@ -11,7 +11,8 @@ use parking_lot::{
 use vulkano::{
 	pipeline::{
 		GraphicsPipeline,
-		GraphicsPipelineAbstract
+		GraphicsPipelineAbstract,
+		depth_stencil::DepthStencil
 	},
 	framebuffer::Subpass,
 	command_buffer::AutoCommandBufferBuilder,
@@ -82,6 +83,9 @@ impl Object {
 
 		// Rasterization
 		let builder = builder.fragment_shader(self.material.shader().entry_point(), ());
+
+		// Depth test
+		let builder = builder.depth_stencil(DepthStencil::simple_depth_test());
 
 		// Build.
 		pipeline.replace(Arc::new(builder.build(target.device().clone()).unwrap()));
