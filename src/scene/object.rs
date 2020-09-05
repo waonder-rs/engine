@@ -21,7 +21,7 @@ use vulkano::{
 use crate::{
 	util::{
 		Matrix4x4,
-		Vector3D
+		Vector3d
 	},
 	Geometry,
 	geometry,

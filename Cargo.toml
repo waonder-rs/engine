@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 vulkano = "*"
 parking_lot = "*"
+once_cell = "*"
 
 vulkano-win = "*"
 winit = "*"
@@ -16,3 +17,4 @@ rand = "*"
 bottle = { path = "../../utils/design/bottle" }
 async-std = { version = "*", features = ["attributes"] }
 crossbeam-channel = "*"
+crossbeam-queue = "*"

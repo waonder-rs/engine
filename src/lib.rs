@@ -13,6 +13,7 @@ use vulkano::{
 
 pub mod util;
 pub mod sync;
+pub mod mem;
 pub mod shader;
 pub mod geometry;
 pub mod projection;

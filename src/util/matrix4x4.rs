@@ -8,8 +8,8 @@ use std::ops::{
 	Index
 };
 use super::{
-	Vector3D,
-	Vector4D,
+	Vector3d,
+	Vector4d,
 	Tensor2d,
 	MonoidMul,
 	MonoidAdd,
@@ -92,12 +92,12 @@ impl<T> Matrix4x4<T> {
 		Matrix4x4::perspective(T::ZERO-right, right, T::ZERO-top, top, near, far)
 	}
 
-	pub fn looking_at(mut target: Vector3D<T>, up: Vector3D<T>) -> Matrix4x4<T> where T: Copy + MonoidAdd + Sub<Output=T> + MonoidMul + Div<Output=T> + Sqrt<Output=T> {
+	pub fn looking_at(mut target: Vector3d<T>, up: Vector3d<T>) -> Matrix4x4<T> where T: Copy + MonoidAdd + Sub<Output=T> + MonoidMul + Div<Output=T> + Sqrt<Output=T> {
 		target.normalize();
-		let mut forward = Vector3D::new(T::ZERO - target.x, T::ZERO - target.y, T::ZERO - target.z);
+		let mut forward = Vector3d::new(T::ZERO - target.x, T::ZERO - target.y, T::ZERO - target.z);
 
-		let side = Vector3D::cross_product(forward, up);
-		let up = Vector3D::cross_product(side, forward);
+		let side = Vector3d::cross_product(forward, up);
+		let up = Vector3d::cross_product(side, forward);
 
 		Matrix4x4(transposed![
 			side.x, side.y, side.z, T::ZERO,
@@ -107,7 +107,7 @@ impl<T> Matrix4x4<T> {
 		])
 	}
 
-	pub fn translation(pos: Vector3D<T>) -> Matrix4x4<T> where T: Copy + MonoidMul + MonoidAdd {
+	pub fn translation(pos: Vector3d<T>) -> Matrix4x4<T> where T: Copy + MonoidMul + MonoidAdd {
 		Matrix4x4(transposed![
 			T::ONE, T::ZERO, T::ZERO, pos.x,
 			T::ZERO, T::ONE, T::ZERO, pos.y,
@@ -116,7 +116,7 @@ impl<T> Matrix4x4<T> {
 		])
 	}
 
-	pub fn translate(&mut self, pos: Vector3D<T>) -> &mut Self where T: Copy + Add<Output=T> + Mul<Output=T> {
+	pub fn translate(&mut self, pos: Vector3d<T>) -> &mut Self where T: Copy + Add<Output=T> + Mul<Output=T> {
 		let m = self.0[3];
 		let n = self.0[7];
 		let o = self.0[11];
@@ -144,7 +144,7 @@ impl<T> Matrix4x4<T> {
 	/// Rotation aroung the given axis.
 	///
 	/// The angle is given in radians.
-	pub fn rotation(angle: T, axis: Vector3D<T>) -> Matrix4x4<T> where T: Copy + Trigonometric<Output=T> + MonoidAdd + Sub<Output=T> + MonoidMul {
+	pub fn rotation(angle: T, axis: Vector3d<T>) -> Matrix4x4<T> where T: Copy + Trigonometric<Output=T> + MonoidAdd + Sub<Output=T> + MonoidMul {
 		let c = angle.cos();
 		let oc = T::ONE - c;
 		let s = angle.sin();
@@ -358,12 +358,12 @@ impl<'a, 'b, T: Copy + Add<Output = T> + Mul<Output = T>> Mul<&'b Matrix4x4<T>> 
 	}
 }
 
-impl<T: Copy + Add<Output = T> + Mul<Output = T>> Mul<Vector4D<T>> for Matrix4x4<T> {
-	type Output = Vector4D<T>;
+impl<T: Copy + Add<Output = T> + Mul<Output = T>> Mul<Vector4d<T>> for Matrix4x4<T> {
+	type Output = Vector4d<T>;
 
 	#[inline]
-	fn mul(self, rhs: Vector4D<T>) -> Vector4D<T> {
-		Vector4D::new(
+	fn mul(self, rhs: Vector4d<T>) -> Vector4d<T> {
+		Vector4d::new(
 			self[(0, 0)] * rhs.x + self[(1, 0)] * rhs.y + self[(2, 0)] * rhs.z + self[(3, 0)] * rhs.w,
 			self[(0, 1)] * rhs.x + self[(1, 1)] * rhs.y + self[(2, 1)] * rhs.z + self[(3, 1)] * rhs.w,
 			self[(0, 2)] * rhs.x + self[(1, 2)] * rhs.y + self[(2, 2)] * rhs.z + self[(3, 2)] * rhs.w,
@@ -372,14 +372,14 @@ impl<T: Copy + Add<Output = T> + Mul<Output = T>> Mul<Vector4D<T>> for Matrix4x4
 	}
 }
 
-impl<T: Copy + Add<Output = T> + Mul<Output = T> + Div<Output=T>> Mul<Vector3D<T>> for Matrix4x4<T> {
-	type Output = Vector3D<T>;
+impl<T: Copy + Add<Output = T> + Mul<Output = T> + Div<Output=T>> Mul<Vector3d<T>> for Matrix4x4<T> {
+	type Output = Vector3d<T>;
 
 	#[inline]
-	fn mul(self, rhs: Vector3D<T>) -> Vector3D<T> {
+	fn mul(self, rhs: Vector3d<T>) -> Vector3d<T> {
 		let w = self[(0, 3)] * rhs.x + self[(1, 3)] * rhs.y + self[(2, 3)] * rhs.z + self[(3, 3)];
 
-		Vector3D::new(
+		Vector3d::new(
 			(self[(0, 0)] * rhs.x + self[(1, 0)] * rhs.y + self[(2, 0)] * rhs.z + self[(3, 0)]) / w,
 			(self[(0, 1)] * rhs.x + self[(1, 1)] * rhs.y + self[(2, 1)] * rhs.z + self[(3, 1)]) / w,
 			(self[(0, 2)] * rhs.x + self[(1, 2)] * rhs.y + self[(2, 2)] * rhs.z + self[(3, 2)]) / w

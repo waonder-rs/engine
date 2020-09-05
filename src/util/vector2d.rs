@@ -2,16 +2,16 @@ use std::ops::{Div, Mul, Add, Sub};
 use super::Norm;
 
 #[repr(packed)]
-pub struct Vector2D<T: Copy> {
+pub struct Vector2d<T: Copy> {
 	pub x: T,
 	pub y: T
 }
 
-pub type Vertex2D<T> = Vector2D<T>;
+pub type Vertex2D<T> = Vector2d<T>;
 
-impl<T: Copy> Vector2D<T> {
-	pub fn new(x: T, y: T) -> Vector2D<T> {
-		Vector2D {
+impl<T: Copy> Vector2d<T> {
+	pub fn new(x: T, y: T) -> Vector2d<T> {
+		Vector2d {
 			x: x,
 			y: y
 		}
@@ -25,8 +25,8 @@ impl<T: Copy> Vector2D<T> {
 		self.y
 	}
 
-	pub fn unit(x: T, y: T) -> Vector2D<T> where T: Copy + Norm<Output = T> + Div<Output = T> {
-		let v = Vector2D::new(x, y);
+	pub fn unit(x: T, y: T) -> Vector2d<T> where T: Copy + Norm<Output = T> + Div<Output = T> {
+		let v = Vector2d::new(x, y);
 		v.normal()
 	}
 
@@ -34,9 +34,9 @@ impl<T: Copy> Vector2D<T> {
 		T::norm(&[self.x, self.y])
 	}
 
-	pub fn normal(&self) -> Vector2D<T> where T: Copy + Norm<Output = T> + Div<Output = T> {
+	pub fn normal(&self) -> Vector2d<T> where T: Copy + Norm<Output = T> + Div<Output = T> {
 		let l = self.len();
-		Vector2D {
+		Vector2d {
 			x: self.x/l,
 			y: self.y/l
 		}
@@ -47,28 +47,28 @@ impl<T: Copy> Vector2D<T> {
 	}
 }
 
-impl<T: Copy> Clone for Vector2D<T> {
-	fn clone(&self) -> Vector2D<T> {
-		Vector2D {
+impl<T: Copy> Clone for Vector2d<T> {
+	fn clone(&self) -> Vector2d<T> {
+		Vector2d {
 			x: self.x(),
 			y: self.y()
 		}
 	}
 }
 
-impl<T: Copy> Copy for Vector2D<T> { }
+impl<T: Copy> Copy for Vector2d<T> { }
 
-impl<T: Copy + Default> Default for Vector2D<T> {
-	fn default() -> Vector2D<T> {
-		Vector2D {
+impl<T: Copy + Default> Default for Vector2d<T> {
+	fn default() -> Vector2d<T> {
+		Vector2d {
 			x: T::default(),
 			y: T::default()
 		}
 	}
 }
 
-impl<T: Copy + PartialEq> PartialEq for Vector2D<T> {
-	fn eq(&self, other: &Vector2D<T>) -> bool {
+impl<T: Copy + PartialEq> PartialEq for Vector2d<T> {
+	fn eq(&self, other: &Vector2d<T>) -> bool {
 		let x = self.x;
 		let y = self.y;
 		let other_x = other.x;
@@ -77,7 +77,7 @@ impl<T: Copy + PartialEq> PartialEq for Vector2D<T> {
 	}
 }
 
-impl<F: Sub, T: Copy + Mul<Output = F>> Mul for Vector2D<T> {
+impl<F: Sub, T: Copy + Mul<Output = F>> Mul for Vector2d<T> {
 	type Output = F::Output;
 
 	fn mul(self, other: Self) -> F::Output {

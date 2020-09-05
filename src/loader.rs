@@ -28,6 +28,11 @@ use vulkano::{
 	sync::GpuFuture
 };
 
+// pub enum Delayed<T> {
+// 	NotReady(Future<T>, Option<T>),
+// 	Ready(T)
+// }
+
 /// In charge of transfering data from/to the GPU.
 pub struct Loader {
 	// The transfert queue

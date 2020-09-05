@@ -7,7 +7,7 @@ use vulkano::command_buffer::AutoCommandBufferBuilder;
 use crate::{
 	util::{
 		Matrix4x4,
-		Vector3D
+		Vector3d
 	},
 	RenderTarget,
 	Scene,
@@ -22,7 +22,7 @@ pub struct Satellite {
 	parent: Option<WeakNodeRef>,
 	children: HashSet<NodeRef>,
 
-	center: Vector3D<f32>,
+	center: Vector3d<f32>,
 	distance: f32,
 	position: (f32, f32), // surface coordinates (polar, azimuthal).
 
@@ -31,14 +31,14 @@ pub struct Satellite {
 }
 
 impl Satellite {
-	pub fn new(projection: Matrix4x4<f32>, center: Vector3D<f32>, distance: f32, position: (f32, f32)) -> Satellite {
-		let world_position = Vector3D::new(distance, 0.0, 0.0);
+	pub fn new(projection: Matrix4x4<f32>, center: Vector3d<f32>, distance: f32, position: (f32, f32)) -> Satellite {
+		let world_position = Vector3d::new(distance, 0.0, 0.0);
 
 		let mut transformation = Matrix4x4::translation(center);
-		transformation *= Matrix4x4::rotation(position.0, Vector3D::new(0.0, 0.0, 1.0));
-		transformation *= Matrix4x4::rotation(position.1, Vector3D::new(0.0, 1.0, 0.0));
+		transformation *= Matrix4x4::rotation(position.0, Vector3d::new(0.0, 0.0, 1.0));
+		transformation *= Matrix4x4::rotation(position.1, Vector3d::new(0.0, 1.0, 0.0));
 		transformation *= Matrix4x4::translation(-world_position);
-		transformation *= Matrix4x4::looking_at(-world_position, Vector3D::new(0.0, 0.0, 1.0)).inverted().unwrap();
+		transformation *= Matrix4x4::looking_at(-world_position, Vector3d::new(0.0, 0.0, 1.0)).inverted().unwrap();
 
 		Satellite {
 			transformation,
@@ -55,13 +55,13 @@ impl Satellite {
 
 	pub fn move_by(&mut self, delta_polar: f32, delta_azimuthal: f32) {
 		self.position = (self.position.0 + delta_polar, self.position.1 + delta_azimuthal);
-		let world_position = Vector3D::new(self.distance, 0.0, 0.0);
+		let world_position = Vector3d::new(self.distance, 0.0, 0.0);
 
 		self.transformation = Matrix4x4::translation(self.center);
-		self.transformation *= Matrix4x4::rotation(-self.position.0, Vector3D::new(0.0, 0.0, 1.0));
-		self.transformation *= Matrix4x4::rotation(-self.position.1, Vector3D::new(0.0, 1.0, 0.0));
+		self.transformation *= Matrix4x4::rotation(-self.position.0, Vector3d::new(0.0, 0.0, 1.0));
+		self.transformation *= Matrix4x4::rotation(-self.position.1, Vector3d::new(0.0, 1.0, 0.0));
 		self.transformation *= Matrix4x4::translation(-world_position);
-		self.transformation *= Matrix4x4::looking_at(-world_position, Vector3D::new(0.0, 0.0, 1.0)).inverted().unwrap();
+		self.transformation *= Matrix4x4::looking_at(-world_position, Vector3d::new(0.0, 0.0, 1.0)).inverted().unwrap();
 	}
 }
 

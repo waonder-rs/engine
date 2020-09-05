@@ -3,17 +3,17 @@ use std::ops::{Div, Mul, Add, Sub, Neg};
 use super::Sqrt;
 
 #[repr(packed)]
-pub struct Vector3D<T: Copy> {
+pub struct Vector3d<T: Copy> {
 	pub x: T,
 	pub y: T,
 	pub z: T
 }
 
-pub type Vertex3D<T> = Vector3D<T>;
+pub type Vertex3D<T> = Vector3d<T>;
 
-impl<T: Copy> Vector3D<T> {
-	pub fn new(x: T, y: T, z: T) -> Vector3D<T> {
-		Vector3D {
+impl<T: Copy> Vector3d<T> {
+	pub fn new(x: T, y: T, z: T) -> Vector3d<T> {
+		Vector3d {
 			x: x,
 			y: y,
 			z: z
@@ -32,9 +32,9 @@ impl<T: Copy> Vector3D<T> {
 		self.z
 	}
 
-	pub fn normal(self) -> Vector3D<T> where T: Add<Output=T> + Sqrt<Output = T> + Mul<Output=T> + Div<Output = T> {
+	pub fn normal(self) -> Vector3d<T> where T: Add<Output=T> + Sqrt<Output = T> + Mul<Output=T> + Div<Output = T> {
 		let l = self.len();
-		Vector3D {
+		Vector3d {
 			x: self.x/l,
 			y: self.y/l,
 			z: self.z/l
@@ -48,8 +48,8 @@ impl<T: Copy> Vector3D<T> {
 		self.z = self.z / l;
 	}
 
-	pub fn cross_product<D: Copy>(self, other: Vector3D<T>) -> Vector3D<D> where T: Mul, T::Output: Sub<Output=D> {
-		Vector3D {
+	pub fn cross_product<D: Copy>(self, other: Vector3d<T>) -> Vector3d<D> where T: Mul, T::Output: Sub<Output=D> {
+		Vector3d {
 			x: self.y * other.z - self.z * other.y,
 			y: self.z * other.x - self.x * other.z,
 			z: self.x * other.y - self.y * other.x
@@ -65,9 +65,9 @@ impl<T: Copy> Vector3D<T> {
 	}
 }
 
-impl<T: Copy + Default> Default for Vector3D<T> {
-	fn default() -> Vector3D<T> {
-		Vector3D {
+impl<T: Copy + Default> Default for Vector3d<T> {
+	fn default() -> Vector3d<T> {
+		Vector3d {
 			x: T::default(),
 			y: T::default(),
 			z: T::default()
@@ -75,9 +75,9 @@ impl<T: Copy + Default> Default for Vector3D<T> {
 	}
 }
 
-impl<T: Copy> Clone for Vector3D<T> {
-	fn clone(&self) -> Vector3D<T> {
-		Vector3D {
+impl<T: Copy> Clone for Vector3d<T> {
+	fn clone(&self) -> Vector3d<T> {
+		Vector3d {
 			x: self.x(),
 			y: self.y(),
 			z: self.z()
@@ -85,10 +85,10 @@ impl<T: Copy> Clone for Vector3D<T> {
 	}
 }
 
-impl<T: Copy> Copy for Vector3D<T> { }
+impl<T: Copy> Copy for Vector3d<T> { }
 
-impl<T: Copy + PartialEq> PartialEq for Vector3D<T> {
-	fn eq(&self, other: &Vector3D<T>) -> bool {
+impl<T: Copy + PartialEq> PartialEq for Vector3d<T> {
+	fn eq(&self, other: &Vector3d<T>) -> bool {
 		let x = self.x;
 		let y = self.y;
 		let z = self.z;
@@ -99,11 +99,11 @@ impl<T: Copy + PartialEq> PartialEq for Vector3D<T> {
 	}
 }
 
-impl<T: Copy + Add> Add for Vector3D<T> where T::Output: Copy {
-	type Output = Vector3D<T::Output>;
+impl<T: Copy + Add> Add for Vector3d<T> where T::Output: Copy {
+	type Output = Vector3d<T::Output>;
 
-	fn add(self, other: Self) -> Vector3D<T::Output> {
-		Vector3D {
+	fn add(self, other: Self) -> Vector3d<T::Output> {
+		Vector3d {
 			x: self.x + other.x,
 			y: self.y + other.y,
 			z: self.z + other.z
@@ -111,11 +111,11 @@ impl<T: Copy + Add> Add for Vector3D<T> where T::Output: Copy {
 	}
 }
 
-impl<T: Copy + Sub> Sub for Vector3D<T> where T::Output: Copy {
-	type Output = Vector3D<T::Output>;
+impl<T: Copy + Sub> Sub for Vector3d<T> where T::Output: Copy {
+	type Output = Vector3d<T::Output>;
 
-	fn sub(self, other: Self) -> Vector3D<T::Output> {
-		Vector3D {
+	fn sub(self, other: Self) -> Vector3d<T::Output> {
+		Vector3d {
 			x: self.x - other.x,
 			y: self.y - other.y,
 			z: self.z - other.z
@@ -123,11 +123,11 @@ impl<T: Copy + Sub> Sub for Vector3D<T> where T::Output: Copy {
 	}
 }
 
-impl<T: Copy + Neg> Neg for Vector3D<T> where T::Output: Copy {
-	type Output = Vector3D<T::Output>;
+impl<T: Copy + Neg> Neg for Vector3d<T> where T::Output: Copy {
+	type Output = Vector3d<T::Output>;
 
-	fn neg(self) -> Vector3D<T::Output> {
-		Vector3D {
+	fn neg(self) -> Vector3d<T::Output> {
+		Vector3d {
 			x: -self.x,
 			y: -self.y,
 			z: -self.z
@@ -135,11 +135,11 @@ impl<T: Copy + Neg> Neg for Vector3D<T> where T::Output: Copy {
 	}
 }
 
-impl<F: Sub, T: Copy + Mul<Output = F>> Mul for Vector3D<T> where F::Output: Copy {
-	type Output = Vector3D<F::Output>;
+impl<F: Sub, T: Copy + Mul<Output = F>> Mul for Vector3d<T> where F::Output: Copy {
+	type Output = Vector3d<F::Output>;
 
-	fn mul(self, other: Self) -> Vector3D<F::Output> {
-		Vector3D {
+	fn mul(self, other: Self) -> Vector3d<F::Output> {
+		Vector3d {
 			x: self.y * other.z - self.z * other.y,
 			y: self.z * other.x - self.x * other.z,
 			z: self.x * other.y - self.y * other.x
@@ -147,11 +147,11 @@ impl<F: Sub, T: Copy + Mul<Output = F>> Mul for Vector3D<T> where F::Output: Cop
 	}
 }
 
-impl<T: Copy + Mul> Mul<T> for Vector3D<T> where T::Output: Copy {
-	type Output = Vector3D<T::Output>;
+impl<T: Copy + Mul> Mul<T> for Vector3d<T> where T::Output: Copy {
+	type Output = Vector3d<T::Output>;
 
-	fn mul(self, f: T) -> Vector3D<T::Output> {
-		Vector3D {
+	fn mul(self, f: T) -> Vector3d<T::Output> {
+		Vector3d {
 			x: self.x * f,
 			y: self.y * f,
 			z: self.z * f
@@ -159,11 +159,11 @@ impl<T: Copy + Mul> Mul<T> for Vector3D<T> where T::Output: Copy {
 	}
 }
 
-impl<T: Copy + Div> Div<T> for Vector3D<T> where T::Output: Copy {
-	type Output = Vector3D<T::Output>;
+impl<T: Copy + Div> Div<T> for Vector3d<T> where T::Output: Copy {
+	type Output = Vector3d<T::Output>;
 
-	fn div(self, f: T) -> Vector3D<T::Output> {
-		Vector3D {
+	fn div(self, f: T) -> Vector3d<T::Output> {
+		Vector3d {
 			x: self.x / f,
 			y: self.y / f,
 			z: self.z / f
@@ -171,7 +171,7 @@ impl<T: Copy + Div> Div<T> for Vector3D<T> where T::Output: Copy {
 	}
 }
 
-impl<T: Copy + fmt::Display> fmt::Display for Vector3D<T> {
+impl<T: Copy + fmt::Display> fmt::Display for Vector3d<T> {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		write!(f, "({}, {}, {})", self.x, self.y, self.z)
 	}

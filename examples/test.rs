@@ -82,7 +82,7 @@ use winit::{
 use engine::{
 	util::{
 		Matrix4x4,
-		Vector3D
+		Vector3d
 	},
 	sync,
 	loader::Loader,
@@ -461,14 +461,14 @@ async fn main() {
 		0.8, // ~ 45°
 		800.0/600.0,
 		0.1, 10.0
-	), Vector3D::new(0.0, 0.0, 0.0), 1.0, (0.0, 0.0)));
+	), Vector3d::new(0.0, 0.0, 0.0), 1.0, (0.0, 0.0)));
 	// let camera = scene.new_node(camera::Satellite::new(Matrix4x4::orthographic(
 	// 	-1.0, 1.0,
 	// 	-1.0, 1.0,
 	// 	-1.0, 1.0
 	// )));
 	// let camera = scene.new_node(camera::Satellite::new(Matrix4x4::identity()));
-	// scene.get_mut(&camera).transformation_mut().translate(Vector3D::new(0.0, 0.0, 2.0));
+	// scene.get_mut(&camera).transformation_mut().translate(Vector3d::new(0.0, 0.0, 2.0));
 
 	let window = Window::new(&event_loop, &physical_device, camera.clone());
 
