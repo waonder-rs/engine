@@ -1,16 +1,9 @@
 use std::sync::Arc;
-use vulkano::{
-	device::Device,
-	pipeline::shader::GraphicsShaderType,
-	descriptor::{
-		pipeline_layout::PipelineLayoutDescPcRange,
-		descriptor::ShaderStages
-	}
-};
+use magma::pipeline::shader;
 use crate::{
 	util::Matrix4x4,
-	shader,
-	Shader
+	// shader,
+	// Shader
 };
 
 mod standard;
@@ -21,19 +14,17 @@ pub trait Projection: Sync + Send {
 	fn shader(&self) -> &VertexShader;
 }
 
-pub struct VertexShader(Shader);
+pub struct VertexShader(Arc<shader::Module>);
 
 impl VertexShader {
-	pub unsafe fn new(device: &Arc<Device>, vspir: &[u8], input: shader::Input, output: shader::Output) -> VertexShader {
-		VertexShader(Shader::new(device, vspir, GraphicsShaderType::Vertex, input, output))
-	}
-}
+	// pub unsafe fn new(device: &Arc<Device>, vspir: &[u8], input: shader::Input, output: shader::Output) -> VertexShader {
+	// 	VertexShader(Shader::new(device, vspir, GraphicsShaderType::Vertex, input, output))
+	// }
 
-impl std::ops::Deref for VertexShader {
-	type Target = Shader;
-
-	fn deref(&self) -> &Shader {
-		&self.0
+	pub fn entry_point(&self) -> shader::EntryPoint {
+		unsafe {
+			self.0.entry_point("main")
+		}
 	}
 }
 
@@ -51,19 +42,19 @@ impl Default for CameraProjection {
 	}
 }
 
-/// Push-constant used to store the projection matrices.
-const PROJECTION_PC_DESCRIPTOR: PipelineLayoutDescPcRange = PipelineLayoutDescPcRange {
-	offset: 0,
-	size: 128,
-	stages: ShaderStages {
-		vertex: true,
-		tessellation_control: false,
-		tessellation_evaluation: false,
-		geometry: false,
-		fragment: false,
-		compute: false
-	}
-};
+// /// Push-constant used to store the projection matrices.
+// const PROJECTION_PC_DESCRIPTOR: PipelineLayoutDescPcRange = PipelineLayoutDescPcRange {
+// 	offset: 0,
+// 	size: 128,
+// 	stages: ShaderStages {
+// 		vertex: true,
+// 		tessellation_control: false,
+// 		tessellation_evaluation: false,
+// 		geometry: false,
+// 		fragment: false,
+// 		compute: false
+// 	}
+// };
 
 // const PROJECTION_BINDING_DESCRIPTOR: DescriptorDesc = DescriptorDesc {
 // 	ty: DescriptorDesc::Buffer(DescriptorBufferDesc {

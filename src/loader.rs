@@ -1,167 +1,161 @@
 use std::sync::{
 	Arc,
-	atomic::{
-		AtomicBool,
-		Ordering
-	}
+	// atomic::{
+	// 	AtomicBool,
+	// 	Ordering
+	// }
 };
-use std::pin::Pin;
-use std::task::{
-	Poll,
-	Context,
-	Waker
-};
-use parking_lot::Mutex;
-use bottle::{
-	Remote,
-	Handler,
-	Receiver,
-	Event,
-	EventQueue,
-	Output
-};
-use vulkano::{
-	device::{
-		Device,
-		Queue
+use once_cell::sync::OnceCell;
+use magma::{
+	Device,
+	DeviceOwned,
+	device,
+	command,
+	sync::{
+		fence
 	},
-	sync::GpuFuture
+	buffer,
+	alloc::{
+		Allocator,
+		Buffer
+	},
+	sync
 };
+// use std::pin::Pin;
+// use std::task::{
+// 	Poll,
+// 	Context,
+// 	Waker
+// };
+// use parking_lot::Mutex;
+// use bottle::{
+// 	Remote,
+// 	Handler,
+// 	Receiver,
+// 	Event,
+// 	EventQueue,
+// 	Output
+// };
 
-// pub enum Delayed<T> {
-// 	NotReady(Future<T>, Option<T>),
-// 	Ready(T)
+pub struct Loading<T> {
+	inner: Arc<OnceCell<T>>
+}
+
+pub enum Query<A: Allocator> {
+	Load {
+		data: Vec<u8>,
+		usage: buffer::Usages,
+		sharing_queues: sync::SharingQueues,
+		buffer: Arc<OnceCell<Buffer<A>>>
+	},
+	CopyBuffer {
+		src: Arc<dyn magma::Buffer>,
+		dst: Arc<dyn magma::Buffer>
+	}
+}
+
+pub struct Loader<A: Allocator> {
+	// ...
+}
+
+impl<A: Allocator> Loader<A> {
+	pub fn load<'a, U: Into<buffer::Usages>, S: Into<sync::SharingQueues>>(
+		&self,
+		data: Vec<u8>,
+		usage: U,
+		sharing_queues: S
+	) -> Loading<Buffer<A>> {
+		panic!("TODO")
+	}
+
+	pub fn copy_buffer<S: 'static + magma::Buffer, D: 'static + magma::Buffer>(&mut self, src: &Arc<S>, dst: &Arc<D>) -> Future {
+		// self.queries.push(Query::CopyBuffer {
+		// 	src: src.clone(),
+		// 	dst: dst.clone()
+		// });
+
+		panic!("TODO")
+	}
+}
+
+pub struct Worker<A> {
+	allocator: A,
+	transfert_queue: device::Queue,
+	command_buffer: command::Buffer<'static>,
+	queries: Vec<Query<A>>
+}
+
+impl<A: Allocator> Worker<A> {
+	fn device(&self) -> &Arc<Device> {
+		self.transfert_queue.device()
+	}
+
+	fn flush(&self) {
+		self.transfert_queue.submit(self.command_buffer)
+	}
+
+	/// Process a single query.
+	fn process_query(&self, commands: command::buffer::Recorder, query: Query<A>) {
+		match query {
+			Query::Load { data, usage, sharing_queues, buffer } => {
+				let staging_buffer = buffer::Unbound::new(
+					self.device(),
+					data.len() as u64,
+					buffer::Usage::TransferSource,
+					Some(&self.transfert_queue)
+				).expect("unable to create staging buffer");
+		
+				let mut sharing_queues = sharing_queues.into();
+				sharing_queues.insert(&self.transfert_queue);
+		
+				let remote_buffer = buffer::Unbound::new(
+					self.device(),
+					data.len() as u64,
+					usage.into() | buffer::Usage::TransferDestination,
+					sharing_queues.into_iter().chain(Some(&self.transfert_queue).into_iter())
+				).expect("unable to create buffer");
+		
+				let staging_slot = self.allocator.allocate(staging_buffer.memory_requirements());
+				let remote_slot = self.allocator.allocate(staging_buffer.memory_requirements());
+		
+				let staging_buffer = match staging_buffer.bind(staging_slot) {
+					Ok(bound) => Arc::new(bound),
+					Err((_, e)) => panic!("unable to bind staging buffer memory: {:?}", e)
+				};
+
+				let remote_buffer = match remote_buffer.bind(remote_slot) {
+					Ok(bound) => Arc::new(bound),
+					Err((_, e)) => panic!("unable to bind remote buffer memory: {:?}", e)
+				};
+
+				commands.copy_buffer(&staging_buffer, &remote_buffer, &[])
+			}
+		}
+	}
+}
+
+// pub struct Worker {
+// 	transfert_queue: device::Queue,
+// 	command_buffer: command::Buffer<'static>,
+// 	fence: fence::Raw
 // }
 
-/// In charge of transfering data from/to the GPU.
-pub struct Loader {
-	// The transfert queue
-	queue: Arc<Queue>,
-	waiter: Remote<Waiter>,
+// impl Worker {
+// 	pub fn flush(&mut self) {
+// 		let ((), all_done) = self.transfert_queue.submit(self.command_buffer).then_signal_fence(&self.fence).expect("unable to submit");
+// 		all_done.wait(None)
+// 	}
+// }
 
-	p: Mutex<Inner>
-}
+// struct Flush;
 
-struct Inner {
-	futures: Vec<Arc<State>>,
-	gpu_future: Option<Box<dyn GpuFuture + Send + Sync>>,
-}
+// impl Event for Flush {
+// 	type Response = ();
+// }
 
-impl Loader {
-	pub fn new(transfert_queue: &Arc<Queue>) -> (Loader, EventQueue) {
-		let waiter_queue = EventQueue::new();
-		let waiter = Remote::new(waiter_queue.reference(), Waiter);
-
-		let loader = Loader {
-			queue: transfert_queue.clone(),
-			waiter,
-
-			p: Mutex::new(Inner {
-				futures: Vec::new(),
-				gpu_future: None
-			})
-		};
-
-		(loader, waiter_queue)
-	}
-
-	/// Vulkan transfert queue.
-	pub fn queue(&self) -> &Arc<Queue> {
-		&self.queue
-	}
-
-	/// Load a resource represented by the given future and then return the given value when finished.
-	///
-	/// The future must execute the loader transfert queue.
-	pub fn load<F: 'static + GpuFuture + Sync + Send, T>(&self, f: F, value: T) -> Future<T> {
-		assert!(f.queue().unwrap() == self.queue);
-		let mut p = self.p.lock();
-
-		let gpu_future = match p.gpu_future.take() {
-			Some(gpu_future) => {
-				Box::new(gpu_future.join(f)) as Box<dyn GpuFuture + Sync + Send>
-			},
-			None => {
-				Box::new(f) as Box<dyn GpuFuture + Sync + Send>
-			}
-		};
-
-		p.gpu_future.replace(gpu_future);
-
-		let state = Arc::new(State {
-			completed: AtomicBool::new(false),
-			waker: Mutex::new(None)
-		});
-
-		p.futures.push(state.clone());
-		Future {
-			value: Some(value),
-			state
-		}
-	}
-
-	/// Put a fence after the currently pending futures.
-	///
-	/// This method must be called regularly so the CPU can be notified when futures are completed.
-	pub fn flush(&self) {
-		let mut p = self.p.lock();
-		if let Some(future) = p.gpu_future.take() {
-			let mut states = Vec::new();
-			std::mem::swap(&mut states, &mut p.futures);
-			self.waiter.send(Flush(future, states));
-		}
-	}
-}
-
-struct Waiter;
-
-struct Flush(Box<dyn GpuFuture + Send + Sync>, Vec<Arc<State>>);
-
-impl Event for Flush {
-	type Response = ();
-}
-
-impl Handler<Flush> for Waiter {
-	fn handle<'a>(self: Receiver<'a, Self>, Flush(future, states): Flush) -> Output<'a, ()> {
-		future.then_signal_fence_and_flush().unwrap().wait(None);
-
-		for state in states {
-			state.completed.store(true, Ordering::Relaxed);
-			let mut waker = state.waker.lock();
-			if let Some(waker) = waker.take() {
-				waker.wake();
-			}
-		}
-
-		Output::Now(())
-	}
-}
-
-pub struct State {
-	completed: AtomicBool,
-	waker: Mutex<Option<Waker>>
-}
-
-pub struct Future<T> {
-	value: Option<T>,
-	state: Arc<State>
-}
-
-impl<T: Unpin> std::future::Future for Future<T> {
-	type Output = T;
-
-	fn poll(mut self: Pin<&mut Self>, ctx: &mut Context) -> Poll<T> {
-		let this = self.get_mut();
-		let mut waker = this.state.waker.lock();
-		waker.replace(ctx.waker().clone());
-
-		if this.state.completed.load(Ordering::Relaxed) {
-			match this.value.take() {
-				Some(value) => Poll::Ready(value),
-				None => Poll::Pending
-			}
-		} else {
-			Poll::Pending
-		}
-	}
-}
+// impl Handler<Flush> for Worker {
+// 	fn handle<'a>(self: Receiver<'a, Self>, _: Flush) -> Output<'a, ()> {
+// 		self.flush();
+// 		Output::Now(())
+// 	}
+// }

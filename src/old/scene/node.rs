@@ -1,8 +1,7 @@
 use std::collections::HashSet;
-use vulkano::command_buffer::AutoCommandBufferBuilder;
 use crate::{
 	util::Matrix4x4,
-	RenderTarget
+	// RenderTarget
 };
 use super::{
 	Scene,
@@ -42,12 +41,12 @@ pub trait Node: Send + Sync {
 		}
 	}
 
-	fn draw(&self, scene: &Scene, target: &RenderTarget, builder: &mut AutoCommandBufferBuilder, projection: &Matrix4x4<f32>) {
-		let projection = projection * self.transformation();
-		for child in self.children() {
-			scene.get(child).draw(target, builder, &projection);
-		}
-	}
+	// fn draw(&self, scene: &Scene, target: &RenderTarget, builder: &mut AutoCommandBufferBuilder, projection: &Matrix4x4<f32>) {
+	// 	let projection = projection * self.transformation();
+	// 	for child in self.children() {
+	// 		scene.get(child).draw(target, builder, &projection);
+	// 	}
+	// }
 }
 
 pub type NodeRef = Ref<dyn Node>;
@@ -60,10 +59,10 @@ impl<'s, 'n> View<'s, 'n, dyn Node> {
 		self.value.world_transformation(self.scene)
 	}
 
-	#[inline]
-	pub fn draw(&self, target: &RenderTarget, builder: &mut AutoCommandBufferBuilder, projection: &Matrix4x4<f32>) {
-		self.value.draw(self.scene, target, builder, projection)
-	}
+	// #[inline]
+	// pub fn draw(&self, target: &RenderTarget, builder: &mut AutoCommandBufferBuilder, projection: &Matrix4x4<f32>) {
+	// 	self.value.draw(self.scene, target, builder, projection)
+	// }
 }
 
 impl<T: 'static + Node> From<Ref<T>> for NodeRef {

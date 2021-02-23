@@ -1,8 +1,10 @@
 use crate::{
 	util::Matrix4x4,
-	Node,
-	Scene,
-	View
+	scene::{
+		Node,
+		Scene,
+		View
+	}
 };
 
 mod satellite;

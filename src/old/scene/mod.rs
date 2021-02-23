@@ -1,10 +1,9 @@
 use std::sync::Arc;
 use std::cell::UnsafeCell;
 use std::collections::HashSet;
-use vulkano::command_buffer::AutoCommandBufferBuilder;
 use crate::{
 	util::Matrix4x4,
-	RenderTarget
+	// RenderTarget
 };
 
 mod references;
@@ -80,9 +79,9 @@ impl Scene {
 		}
 	}
 
-	pub fn draw(&self, target: &RenderTarget, builder: &mut AutoCommandBufferBuilder, transformation: &Matrix4x4<f32>) {
-		for node in &self.roots {
-			self.get(node).draw(target, builder, transformation);
-		}
-	}
+	// pub fn draw(&self, target: &RenderTarget, builder: &mut AutoCommandBufferBuilder, transformation: &Matrix4x4<f32>) {
+	// 	for node in &self.roots {
+	// 		self.get(node).draw(target, builder, transformation);
+	// 	}
+	// }
 }

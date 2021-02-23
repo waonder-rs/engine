@@ -3,17 +3,19 @@ use std::sync::{
 	Weak
 };
 use std::collections::HashSet;
-use vulkano::command_buffer::AutoCommandBufferBuilder;
+// use vulkano::command_buffer::AutoCommandBufferBuilder;
 use crate::{
 	util::{
 		Matrix4x4,
 		Vector3d
 	},
 	RenderTarget,
-	Scene,
-	Node,
-	NodeRef,
-	WeakNodeRef
+	scene::{
+		Scene,
+		Node,
+		NodeRef,
+		WeakNodeRef
+	}
 };
 use super::Camera;
 
