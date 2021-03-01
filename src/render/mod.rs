@@ -4,6 +4,7 @@ use std::{
 	marker::PhantomData
 };
 use magma::{
+	device,
 	Device,
 	framebuffer::RenderPass
 };
@@ -13,13 +14,18 @@ use ::scene::{
 	Id,
 	Ref,
 };
-use crate::View;
+use crate::{
+	View,
+	sync::Loader
+};
 
 mod target;
+mod context;
 mod pov;
 mod generator;
 
 pub use target::Target;
+pub use context::Context;
 pub use generator::Generator;
 pub use pov::PointOfView;
 
@@ -32,7 +38,11 @@ impl<R: Target, T, E, P: PointOfView<T, E>, G: Generator<T>> Worker<R, T, E, P, 
 	pub fn new(render_target: R, point_of_view: P, generator: G) -> Self {
 		Self {
 			inner: Inner {
-				render_target,
+				context: WorkerContext {
+					target: render_target,
+					graphics_queue: panic!("TODO"),
+					loader: panic!("TODO")
+				},
 				generator,
 				views: Map::new(),
 				e: PhantomData
@@ -57,7 +67,7 @@ impl<R: Target, T, E, P: PointOfView<T, E>, G: Generator<T>> cycles::Worker<Scen
 }
 
 struct Inner<R: Target, T, E, G: Generator<T>> {
-	render_target: R,
+	context: WorkerContext<R>,
 	generator: G,
 	views: Map<T, View>,
 	e: PhantomData<E>
@@ -66,6 +76,39 @@ struct Inner<R: Target, T, E, G: Generator<T>> {
 impl<R: Target, T, E, G: Generator<T>> Inner<R, T, E, G> {
 	fn render_object(&mut self, scene: &Scene<T, E>, object: Ref<T>) {
 		let view = self.views.get(object.id());
-		panic!("TODO render view")
+		
+		let view = match view {
+			Some(view) => view,
+			None => {
+				let view = self.generator.view(&object);
+				self.views.set(object.id(), view);
+				self.views.get(object.id()).unwrap()
+			}
+		};
+
+		panic!("TODO")
+		// view.draw(&self.context, commands, projection)
+	}
+}
+
+struct WorkerContext<R: Target> {
+	target: R,
+	graphics_queue: device::Queue,
+	loader: Loader
+}
+
+impl<R: Target> Context for WorkerContext<R> {
+	type Target = R;
+
+	fn target(&self) -> &R {
+		&self.target
+	}
+
+	fn graphics_queue(&self) -> &device::Queue {
+		&self.graphics_queue
+	}
+
+	fn loader(&self) -> &Loader {
+		&self.loader
 	}
 }
